@@ -6,3 +6,7 @@
 	path = src/LISF
 	url = https://github.com/NASA-LIS/LISF.git
 	branch = master
+[submodule "src/parflow"]
+	path = src/parflow
+	url = git@github.com:NESII/parflow.git
+	branch = feature/NUOPC
