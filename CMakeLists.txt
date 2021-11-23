@@ -16,6 +16,8 @@ project(NASA-Land-Coupler
         VERSION 1.0
         LANGUAGES Fortran)
 
+include(ExternalProject)
+
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake/modules)
 
 find_package(ESMF MODULE REQUIRED)
@@ -30,43 +32,94 @@ list(APPEND nlc_app_files
   src/driver/mediator.F90
 )
 
-if (DEFINED ENV{NLC_LIS_INST} AND NOT DEFINED NLC_LIS_INST)
-  set(NLC_LIS_INST $ENV{NLC_LIS_INST} CACHE FILEPATH "Path to NLC_LIS_INST")
-endif ()
-if (DEFINED ENV{NLC_WRFHYDRO_INST} AND NOT DEFINED NLC_WRFHYDRO_INST)
-  set(NLC_WRFHYDRO_INST $ENV{NLC_WRFHYDRO_INST} CACHE FILEPATH "Path to NLC_WRFHYDRO_INST")
-endif ()
-
-
-message("Build LIS:")
-message("  run: ${CMAKE_BUILD_TOOL} make nuopcinstall INSTPATH=${NLC_LIS_INST}")
-message("   in: ${CMAKE_CURRENT_SOURCE_DIR}/src/LISF/lis/runmodes/nuopc_cpl_mode")
-message("")
-
-add_custom_target(lis_nuopc
-  WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/src/LISF/lis/runmodes/nuopc_cpl_mode"
-  COMMAND ${CMAKE_BUILD_TOOL} nuopcinstall INSTPATH=${NLC_LIS_INST})
-
-message("Build WRFHYDRO:")
-message("  run: ${CMAKE_BUILD_TOOL} make nuopcinstall INSTPATH=${NLC_WRFHYDRO_INST}")
-message("   in: ${CMAKE_CURRENT_SOURCE_DIR}/src/wrf_hydro_nwm/trunk/NDHMS/CPL/NUOPC_cpl")
-message("")
-
-add_custom_target(wrfhydro_nuopc
-  WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/src/wrf_hydro_nwm/trunk/NDHMS/CPL/NUOPC_cpl"
-  COMMAND ${CMAKE_BUILD_TOOL} nuopcinstall INSTPATH=${NLC_WRFHYDRO_INST})
-
 add_executable(NLC.exe ${nlc_app_files})
 target_link_libraries(NLC.exe PUBLIC ESMF)
-add_dependencies(NLC.exe lis_nuopc)
-add_dependencies(NLC.exe wrfhydro_nuopc)
-target_link_libraries(NLC.exe PUBLIC ${NLC_LIS_INST}/liblis_nuopc.a)
-target_link_libraries(NLC.exe PUBLIC ${NLC_WRFHYDRO_INST}/libwrfhydro_nuopc.a)
-target_include_directories(NLC.exe PUBLIC ${NLC_LIS_INST})
-target_include_directories(NLC.exe PUBLIC ${NLC_WRFHYDRO_INST})
 install(TARGETS NLC.exe DESTINATION .)
 list(APPEND nlc_defs_private ESMF_VERSION_MAJOR=${ESMF_VERSION_MAJOR})
 target_compile_definitions(NLC.exe PRIVATE "${nlc_defs_private}")
+
+if (COMPONENT_LIST)
+  string(REPLACE "," ";" COMPONENT_LIST "${COMPONENT_LIST}")
+  foreach (component IN ITEMS ${COMPONENT_LIST})
+    string(TOUPPER ${component} component)
+    set(ENABLE_${component} ON)
+  endforeach()
+else()
+  set(ENABLE_LIS ON)
+  set(ENABLE_WRFHYDRO ON)
+  set(ENABLE_PARFLOW ON)
+endif()
+
+if (ENABLE_LIS)
+  set(NLC_LIS_INST $ENV{NLC_LIS_INST} CACHE FILEPATH "Path to NLC_LIS_INST")
+  message("Build LIS:")
+  message("  run: ${CMAKE_BUILD_TOOL} nuopcinstall INSTPATH=${NLC_LIS_INST}")
+  message("   in: ${CMAKE_CURRENT_SOURCE_DIR}/src/LISF/lis/runmodes/nuopc_cpl_mode")
+  message("")
+
+  if(NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/src/LISF/lis/make/configure.lis")
+    message(FATAL_ERROR "LIS configuration missing.")
+  endif()
+
+  add_custom_target(lis_nuopc
+    WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/src/LISF/lis/runmodes/nuopc_cpl_mode"
+    COMMAND ${CMAKE_BUILD_TOOL} nuopcinstall INSTPATH=${NLC_LIS_INST})
+
+  add_dependencies(NLC.exe lis_nuopc)
+  target_link_libraries(NLC.exe PUBLIC ${NLC_LIS_INST}/liblis_nuopc.a)
+  target_include_directories(NLC.exe PUBLIC ${NLC_LIS_INST})
+endif (ENABLE_LIS)
+
+if (ENABLE_WRFHYDRO)
+  set(NLC_WRFHYDRO_INST $ENV{NLC_WRFHYDRO_INST} CACHE FILEPATH "Path to NLC_WRFHYDRO_INST")
+  message("Build WRFHYDRO:")
+  message("  run: ${CMAKE_BUILD_TOOL} nuopcinstall INSTPATH=${NLC_WRFHYDRO_INST}")
+  message("   in: ${CMAKE_CURRENT_SOURCE_DIR}/src/wrf_hydro_nwm/trunk/NDHMS/CPL/NUOPC_cpl")
+  message("")
+
+  if(NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/src/wrf_hydro_nwm/trunk/NDHMS/macros")
+    message(FATAL_ERROR "WRFHYDRO configuration missing.")
+  endif()
+
+  add_custom_target(wrfhydro_nuopc
+    WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/src/wrf_hydro_nwm/trunk/NDHMS/CPL/NUOPC_cpl"
+    COMMAND ${CMAKE_BUILD_TOOL} nuopcinstall INSTPATH=${NLC_WRFHYDRO_INST})
+
+  add_dependencies(NLC.exe wrfhydro_nuopc)
+  target_link_libraries(NLC.exe PUBLIC ${NLC_WRFHYDRO_INST}/libwrfhydro_nuopc.a)
+  target_include_directories(NLC.exe PUBLIC ${NLC_WRFHYDRO_INST})  
+endif (ENABLE_WRFHYDRO)
+
+if (ENABLE_PARFLOW)
+  set(NLC_PARFLOW_INST $ENV{NLC_PARFLOW_INST} CACHE FILEPATH "Path to NLC_PARFLOW_INST")
+  message("Build PARFLOW:")
+  message("  run: ${CMAKE_BUILD_TOOL} INSTPATH=${NLC_PARFLOW_INST}")
+  message("   in: ${CMAKE_CURRENT_SOURCE_DIR}/src/parflow")
+  message("")
+
+  set(PARFLOW_AMPS_LAYER $ENV{PARFLOW_AMPS_LAYER} CACHE FILEPATH "Setting for PARFLOW_AMPS_LAYER")
+  set(PARFLOW_HAVE_CLM $ENV{PARFLOW_HAVE_CLM} CACHE FILEPATH "Setting for PARFLOW_HAVE_CLM")
+  set(PARFLOW_HYPRE_DIR $ENV{PARFLOW_HYPRE_DIR} CACHE FILEPATH "Path to PARFLOW_HYPRE_DIR")
+  set(PARFLOW_HDF5_DIR $ENV{PARFLOW_HDF5_DIR} CACHE FILEPATH "Path to PARFLOW_HDF5_DIR")
+  set(PARFLOW_SILO_DIR $ENV{PARFLOW_SILO_DIR} CACHE FILEPATH "Path to PARFLOW_SILO_DIR")
+
+  ExternalProject_Add(parflow
+    PREFIX ${CMAKE_CURRENT_BINARY_DIR}/parflow
+    SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src/parflow
+    INSTALL_DIR ${NLC_PARFLOW_INST}
+    CMAKE_ARGS -DPARFLOW_AMPS_LAYER=${PARFLOW_AMPS_LAYER}
+               -DHYPRE_ROOT=${PARFLOW_HYPRE_DIR}
+               -DHDF5_ROOT=${PARFLOW_HDF5_DIR}
+               -DSILO_ROOT=${PARFLOW_SILO_DIR}
+               -DPARFLOW_HAVE_CLM=${PARFLOW_HAVE_CLM}
+               -DCMAKE_INSTALL_PREFIX=${NLC_PARFLOW_INST}
+               -DPARFLOW_ENABLE_NUOPC=ON
+               -DCMAKE_BUILD_TYPE=DEBUG
+    BUILD_ALWAYS TRUE
+  )
+
+  add_dependencies(NLC.exe parflow)
+endif (ENABLE_PARFLOW)
 
 # find LIS dependencies
 find_package(LISDEPS MODULE REQUIRED)
