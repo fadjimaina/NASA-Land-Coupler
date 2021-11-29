@@ -25,6 +25,10 @@ module load eccodes-lishydro/2.7.0
 module load esmf-lishydro/7.1.0
 module load hdf-lishydro/4.2.11
 module load hdfeos-lishydro/2.19v1.00
+module load hypre-lishydro/2.10.1
+#module load hdf5-lishydro/1.8.14
+module load silo-lishydro/4.10.2
+
 module list
 
 # needed by LIS
@@ -48,6 +52,14 @@ export LIS_CC="mpicc"
 
 # WRFHYDRO environment variables
 export NETCDF="${LIS_NETCDF}"
+export WRF_HYDRO="1"
+
+# PARFLOW environment variables
+#export PARFLOW_HYPRE_DIR=""
+#export PARFLOW_HDF5_DIR=""
+#export PARFLOW_SILO_DIR=""
+export PARFLOW_AMPS_LAYER="mpi1"
+export PARFLOW_HAVE_CLM="OFF"
 
 # NASA Land Coupler environment variables
 export CMAKE_C_COMPILER="mpicc"
@@ -55,6 +67,5 @@ export CMAKE_CXX_COMPILER="mpicxx"
 export CMAKE_Fortran_COMPILER="mpif90"
 export NLC_LIS_INST="${NLC_DIR}/LIS-INSTALL"
 export NLC_WRFHYDRO_INST="${NLC_DIR}/WRFHydro-INSTALL"
+export NLC_PARFLOW_INST="${NLC_DIR}/PARFLOW-INSTALL"
 export ESMFMKFILE="${LIS_LIBESMF}/esmf.mk"
-export WRF_HYDRO="1"
-
