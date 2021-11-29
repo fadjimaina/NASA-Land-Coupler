@@ -24,8 +24,15 @@ module ESM
     driver_label_SetRunSequence   => label_SetRunSequence, &
     driver_label_ModifyCplLists   => label_ModifyCplLists
 
-  use LIS_NUOPC, only: lndSS => SetServices
-  use WRFHydro_NUOPC, only: hydSS => SetServices
+#ifdef NUOPCCAP_LIS
+  use NUOPCCAP_LIS, only: lis_ss => SetServices
+#endif
+#ifdef NUOPCCAP_WRFHYDRO
+  use NUOPCCAP_WRFHYDRO, only: wrfhydro_ss => SetServices
+#endif
+#ifdef NUOPCCAP_PARFLOW
+  use NUOPCCAP_PARFLOW, only: parflow_ss => SetServices
+#endif
   use Mediator, only: medSS => SetServices
   use Fields
 
@@ -100,6 +107,7 @@ module ESM
     character(6)                  :: maxStr
     character(3)                  :: instStrFmt
     character(10)                 :: compName
+    character(40)                 :: model
     type(ESMF_GridComp)           :: child
     type(ESMF_CplComp)            :: connector
     type(ESMF_Config)             :: config
@@ -133,22 +141,44 @@ module ESM
 
     if (enabledLnd) then
 
+      ! get model from config
+      call getModelFromConfig(config, "lnd_model:", model=model, rc=rc)
+      if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+        line=__LINE__, file=__FILE__)) return  ! bail out
+
       ! get PET lists from config
       call getPetListFromConfig(config, "pets_lnd:", petList=petList, rc=rc)
       if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
         line=__LINE__, file=__FILE__)) return  ! bail out
 
       ! SetServices for LND
-      if (allocated(petList)) then
-        call NUOPC_DriverAddComp(driver, "LND", lndSS, petList=petList, comp=child, rc=rc)
-        if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-          line=__LINE__, file=__FILE__)) return  ! bail out
-        deallocate(petList)
-      else
-        call NUOPC_DriverAddComp(driver, "LND", lndSS, comp=child, rc=rc)
-        if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-          line=__LINE__, file=__FILE__)) return  ! bail out
-      endif
+      select case (model)
+        case ('lis','default')
+#ifdef NUOPCCAP_LIS
+          if (allocated(petList)) then
+            call NUOPC_DriverAddComp(driver, "LND", lis_ss, petList=petList, &
+              comp=child, rc=rc)
+            if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+              line=__LINE__, file=__FILE__)) return  ! bail out
+            deallocate(petList)
+          else
+            call NUOPC_DriverAddComp(driver, "LND", lis_ss, comp=child, rc=rc)
+            if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+              line=__LINE__, file=__FILE__)) return  ! bail out
+          endif
+#else
+          call ESMF_LogSetError(ESMF_RC_ARG_BAD, &
+            msg="LIS model missing from build", &
+            line=__LINE__, file=__FILE__, rcToReturn=rc)
+          return
+#endif
+        case default
+          call ESMF_LogSetError(ESMF_RC_ARG_BAD, &
+            msg="invalid lnd_model: "//trim(model), &
+            line=__LINE__, file=__FILE__, rcToReturn=rc)
+          return
+      endselect
+
       call NUOPC_CompAttributeSet(child, name="Verbosity", value="0", rc=rc)
       if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
         line=__LINE__, file=__FILE__)) return  ! bail out
@@ -172,6 +202,11 @@ module ESM
       line=__LINE__, file=__FILE__)) return  ! bail out
 
     if (enabledHyd) then
+
+      ! get model from config
+      call getModelFromConfig(config, "hyd_model:", model=model, rc=rc)
+      if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+        line=__LINE__, file=__FILE__)) return  ! bail out
 
       ! get instance count from config
       call ESMF_ConfigGetAttribute(config, instCnt, &
@@ -221,17 +256,54 @@ module ESM
             line=__LINE__, file=__FILE__)) return  ! bail out
 
           ! SetServices for HYD
-          if (allocated(petList)) then
-            call NUOPC_DriverAddComp(driver, compName, hydSS, petList=petList, &
-              comp=child, rc=rc)
-            if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-              line=__LINE__, file=__FILE__)) return  ! bail out
-            deallocate(petList)
-          else
-            call NUOPC_DriverAddComp(driver, compName, hydSS, comp=child, rc=rc)
-            if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-              line=__LINE__, file=__FILE__)) return  ! bail out
-          endif
+          select case (model)
+            case ('wrfhydro','default')
+#ifdef NUOPCCAP_WRFHYDRO
+              if (allocated(petList)) then
+                call NUOPC_DriverAddComp(driver, compName, wrfhydro_ss, &
+                  petList=petList, comp=child, rc=rc)
+                if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+                  line=__LINE__, file=__FILE__)) return  ! bail out
+                deallocate(petList)
+              else
+                call NUOPC_DriverAddComp(driver, compName, wrfhydro_ss, &
+                  comp=child, rc=rc)
+                if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+                  line=__LINE__, file=__FILE__)) return  ! bail out
+              endif
+#else
+              call ESMF_LogSetError(ESMF_RC_ARG_BAD, &
+                msg="WRFHYDRO model missing from build", &
+                line=__LINE__, file=__FILE__, rcToReturn=rc)
+              return
+#endif
+            case ('parflow')
+#ifdef NUOPCCAP_PARFLOW
+              if (allocated(petList)) then
+                call NUOPC_DriverAddComp(driver, compName, parflow_ss, &
+                  petList=petList, comp=child, rc=rc)
+                if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+                  line=__LINE__, file=__FILE__)) return  ! bail out
+                deallocate(petList)
+              else
+                call NUOPC_DriverAddComp(driver, compName, parflow_ss, &
+                  comp=child, rc=rc)
+                if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+                  line=__LINE__, file=__FILE__)) return  ! bail out
+              endif
+#else
+              call ESMF_LogSetError(ESMF_RC_ARG_BAD, &
+                msg="PARFLOW model missing from build", &
+                line=__LINE__, file=__FILE__, rcToReturn=rc)
+              return
+#endif
+            case default
+              call ESMF_LogSetError(ESMF_RC_ARG_BAD, &
+                msg="invalid hyd_model: "//trim(model), &
+                line=__LINE__, file=__FILE__, rcToReturn=rc)
+              return
+          endselect
+
           call NUOPC_CompAttributeSet(child, name="Verbosity", value="0", rc=rc)
           if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
             line=__LINE__, file=__FILE__)) return  ! bail out
@@ -265,17 +337,54 @@ module ESM
           line=__LINE__, file=__FILE__)) return  ! bail out
 
         ! SetServices for HYD
-        if (allocated(petList)) then
-          call NUOPC_DriverAddComp(driver, "HYD", hydSS, petList=petList, &
-            comp=child, rc=rc)
-          if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-            line=__LINE__, file=__FILE__)) return  ! bail out
-          deallocate(petList)
-        else
-          call NUOPC_DriverAddComp(driver, "HYD", hydSS, comp=child, rc=rc)
-          if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-            line=__LINE__, file=__FILE__)) return  ! bail out
-        endif
+        select case (model)
+          case ('wrfhydro','default')
+#ifdef NUOPCCAP_WRFHYDRO
+            if (allocated(petList)) then
+              call NUOPC_DriverAddComp(driver, "HYD", wrfhydro_ss, &
+                petList=petList, comp=child, rc=rc)
+              if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+                line=__LINE__, file=__FILE__)) return  ! bail out
+              deallocate(petList)
+            else
+              call NUOPC_DriverAddComp(driver, "HYD", wrfhydro_ss, &
+                comp=child, rc=rc)
+              if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+                line=__LINE__, file=__FILE__)) return  ! bail out
+            endif
+#else
+            call ESMF_LogSetError(ESMF_RC_ARG_BAD, &
+              msg="WRFHYDRO model missing from build", &
+              line=__LINE__, file=__FILE__, rcToReturn=rc)
+            return
+#endif
+          case ('parflow')
+#ifdef NUOPCCAP_PARFLOW
+            if (allocated(petList)) then
+              call NUOPC_DriverAddComp(driver, "HYD", parflow_ss, &
+                petList=petList, comp=child, rc=rc)
+              if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+                line=__LINE__, file=__FILE__)) return  ! bail out
+              deallocate(petList)
+            else
+              call NUOPC_DriverAddComp(driver, "HYD", parflow_ss, &
+                comp=child, rc=rc)
+              if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+                line=__LINE__, file=__FILE__)) return  ! bail out
+            endif
+#else
+            call ESMF_LogSetError(ESMF_RC_ARG_BAD, &
+              msg="PARFLOW model missing from build", &
+              line=__LINE__, file=__FILE__, rcToReturn=rc)
+            return
+#endif
+          case default
+            call ESMF_LogSetError(ESMF_RC_ARG_BAD, &
+              msg="invalid hyd_model: "//trim(model), &
+              line=__LINE__, file=__FILE__, rcToReturn=rc)
+            return
+        endselect
+
         call NUOPC_CompAttributeSet(child, name="Verbosity", value="0", rc=rc)
         if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
           line=__LINE__, file=__FILE__)) return  ! bail out
@@ -688,6 +797,35 @@ module ESM
       line=__LINE__, file=__FILE__)) return  ! bail out
 
   end subroutine getTimeFromConfig
+
+  !-----------------------------------------------------------------------------
+
+  subroutine getModelFromConfig(config, label, model, rc)
+    type(ESMF_Config), intent(inout)    :: config
+    character(len=*), intent(in)        :: label
+    character(len=*), intent(out)       :: model
+    integer, intent(out)                :: rc
+
+    ! local
+    logical           :: isPresent
+    character(len=40) :: value
+
+    call ESMF_ConfigFindLabel(config, trim(label), &
+      isPresent=isPresent, rc=rc)
+    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+      line=__LINE__, file=__FILE__)) return  ! bail out
+    if (isPresent) then
+      call ESMF_ConfigGetAttribute(config, value, label=trim(label), rc=rc)
+      if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+        line=__LINE__, file=__FILE__)) return  ! bail out
+      model = ESMF_UtilStringLowerCase(value, rc=rc)
+      if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+        line=__LINE__, file=__FILE__)) return  ! bail out
+    else
+      model="default"
+    endif
+
+  end subroutine getModelFromConfig
 
   !-----------------------------------------------------------------------------
 

@@ -33,10 +33,6 @@ list(APPEND nlc_app_files
 )
 
 add_executable(NLC.exe ${nlc_app_files})
-target_link_libraries(NLC.exe PUBLIC ESMF)
-install(TARGETS NLC.exe DESTINATION .)
-list(APPEND nlc_defs_private ESMF_VERSION_MAJOR=${ESMF_VERSION_MAJOR})
-target_compile_definitions(NLC.exe PRIVATE "${nlc_defs_private}")
 
 if (COMPONENT_LIST)
   string(REPLACE "," ";" COMPONENT_LIST "${COMPONENT_LIST}")
@@ -68,6 +64,11 @@ if (ENABLE_LIS)
   add_dependencies(NLC.exe lis_nuopc)
   target_link_libraries(NLC.exe PUBLIC ${NLC_LIS_INST}/liblis_nuopc.a)
   target_include_directories(NLC.exe PUBLIC ${NLC_LIS_INST})
+  list(APPEND nlc_defs_private NUOPCCAP_LIS=LIS_NUOPC)
+
+  # link LIS dependencies
+  include(lis_dependencies)
+  target_link_lis_dependencies(NLC.exe)
 endif (ENABLE_LIS)
 
 if (ENABLE_WRFHYDRO)
@@ -88,6 +89,11 @@ if (ENABLE_WRFHYDRO)
   add_dependencies(NLC.exe wrfhydro_nuopc)
   target_link_libraries(NLC.exe PUBLIC ${NLC_WRFHYDRO_INST}/libwrfhydro_nuopc.a)
   target_include_directories(NLC.exe PUBLIC ${NLC_WRFHYDRO_INST})  
+  list(APPEND nlc_defs_private NUOPCCAP_WRFHYDRO=WRFHydro_NUOPC)
+
+  # link WRFHYDRO dependencies
+  include(wrfhydro_dependencies)
+  target_link_wrfhydro_dependencies(NLC.exe)
 endif (ENABLE_WRFHYDRO)
 
 if (ENABLE_PARFLOW)
@@ -119,38 +125,23 @@ if (ENABLE_PARFLOW)
   )
 
   add_dependencies(NLC.exe parflow)
+
+  target_link_libraries(NLC.exe PUBLIC ${NLC_PARFLOW_INST}/lib/libparflow_nuopc.a)
+  target_link_libraries(NLC.exe PUBLIC ${NLC_PARFLOW_INST}/lib/libpfsimulator.a)
+  target_link_libraries(NLC.exe PUBLIC ${NLC_PARFLOW_INST}/lib/libamps.a)
+  target_link_libraries(NLC.exe PUBLIC ${NLC_PARFLOW_INST}/lib/libcjson.a)
+  target_link_libraries(NLC.exe PUBLIC ${NLC_PARFLOW_INST}/lib/libpfkinsol.a)
+  target_include_directories(NLC.exe PUBLIC ${NLC_PARFLOW_INST}/include)
+  list(APPEND nlc_defs_private NUOPCCAP_PARFLOW=parflow_nuopc)
+
+  # link PARFLOW dependencies
+  include(parflow_dependencies)
+  target_link_parflow_dependencies(NLC.exe)
 endif (ENABLE_PARFLOW)
 
-# find LIS dependencies
-find_package(LISDEPS MODULE REQUIRED)
-if (JASPER_FOUND) # JASPER
-  target_link_libraries(NLC.exe PUBLIC JASPER::JASPER)
-endif ()
-if (OPENJPEG_FOUND) # OPENJPEG
-  target_link_libraries(NLC.exe PUBLIC OPENJPEG::OPENJPEG)
-endif ()
-if (GRIBAPI_FOUND) # GRIBAPI
-  target_link_libraries(NLC.exe PUBLIC GRIBAPI::GRIBAPI)
-  target_link_libraries(NLC.exe PUBLIC GRIBAPI::GRIBAPI_F90)
-elseif (ECCODES_FOUND) # ECCODES
-  target_link_libraries(NLC.exe PUBLIC ECCODES::ECCODES)
-  target_link_libraries(NLC.exe PUBLIC ECCODES::ECCODES_F90)
-endif ()
-if (HDF4_FOUND) # HDF4
-  target_link_libraries(NLC.exe PUBLIC HDF4::MFHDF)
-  target_link_libraries(NLC.exe PUBLIC HDF4::DF)
-endif ()
-if (HDF5_FOUND) # HDF5
-  target_link_libraries(NLC.exe PUBLIC HDF5::HDF5)
-  target_link_libraries(NLC.exe PUBLIC HDF5::HDF5_FORTRAN)
-  target_link_libraries(NLC.exe PUBLIC HDF5::HDF5_HL)
-endif ()
-if (HDFEOS_FOUND) # HDFEOS
-  target_link_libraries(NLC.exe PUBLIC HDFEOS::HDFEOS)
-  target_link_libraries(NLC.exe PUBLIC HDFEOS::GCTP)
-endif ()
-if (NETCDF_FOUND) # NETCDF
-  target_link_libraries(NLC.exe PUBLIC NETCDF::NETCDF)
-  target_link_libraries(NLC.exe PUBLIC NETCDF::NETCDFF)
-endif ()
+target_link_libraries(NLC.exe PUBLIC ESMF)
+list(APPEND nlc_defs_private ESMF_VERSION_MAJOR=${ESMF_VERSION_MAJOR})
+list(APPEND nlc_defs_private ESMF_VERSION_MINOR=${ESMF_VERSION_MINOR})
+target_compile_definitions(NLC.exe PRIVATE "${nlc_defs_private}")
 
+install(TARGETS NLC.exe DESTINATION .)
