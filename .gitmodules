@@ -8,5 +8,5 @@
 	branch = master
 [submodule "src/parflow"]
 	path = src/parflow
-	url = git@github.com:NESII/parflow.git
+	url = https://github.com/NESII/parflow.git
 	branch = feature/NUOPC
