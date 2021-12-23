@@ -68,7 +68,7 @@ INSTALL_DIR=${NLC_DIR}/src/driver
 SYSTEM=""
 MYCOMPILER=""
 COMPONENTS=""
-BUILD_TYPE="release"
+BUILD_TYPE="Release"
 CLEAN=false
 CONTINUE=false
 VERBOSE=false
@@ -92,6 +92,9 @@ while :; do
     --components=?*) COMPONENTS=${1#*=} ;;
     --components) printf "ERROR: $1 requires an argument.\n"; usage; exit 1 ;;
     --components=) printf "ERROR: $1 requires an argument.\n"; usage; exit 1 ;;
+    --build-type=?*) BUILD_TYPE=${1#*=} ;;
+    --build-type) printf "ERROR: $1 requires an argument.\n"; usage; exit 1 ;;
+    --build-type=) printf "ERROR: $1 requires an argument.\n"; usage; exit 1 ;;
     --build-dir=?*) BUILD_DIR=${1#*=} ;;
     --build-dir) printf "ERROR: $1 requires an argument.\n"; usage; exit 1 ;;
     --build-dir=) printf "ERROR: $1 requires an argument.\n"; usage; exit 1 ;;

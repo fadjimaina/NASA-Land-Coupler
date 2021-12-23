@@ -18,6 +18,18 @@ project(NASA-Land-Coupler
 
 include(ExternalProject)
 
+if(CMAKE_Fortran_COMPILER_ID MATCHES "GNU")
+  set(CMAKE_Fortran_FLAGS_RELEASE "-O2")
+  set(CMAKE_Fortran_FLAGS_RELWITHDEBINFO "-g -fbacktrace -02")
+  set(CMAKE_Fortran_FLAGS_DEBUG "-g -fbacktrace -O0 -fcheck=all -ffpe-trap=invalid,zero,overflow,underflow" )
+elseif(CMAKE_Fortran_COMPILER_ID MATCHES "Intel")
+  set(CMAKE_Fortran_FLAGS_RELEASE "-O2")
+  set(CMAKE_Fortran_FLAGS_RELWITHDEBINFO "-g -traceback -O2")
+  set(CMAKE_Fortran_FLAGS_DEBUG "-g -traceback -O0 -check all -fpe0 -ftrapuv -init=snan,arrays")
+else()
+  message(WARNING "Fortran compiler with ID ${CMAKE_Fortran_COMPILER_ID} will be used with CMake default options")
+endif()
+
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake/modules)
 
 find_package(ESMF MODULE REQUIRED)
@@ -144,7 +156,7 @@ if (ENABLE_PARFLOW)
                -DPARFLOW_HAVE_CLM=${PARFLOW_HAVE_CLM}
                -DCMAKE_INSTALL_PREFIX=${NLC_PARFLOW_INST}
                -DPARFLOW_ENABLE_NUOPC=ON
-               -DCMAKE_BUILD_TYPE=DEBUG
+               -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
     BUILD_ALWAYS TRUE
   )
 
