@@ -65,23 +65,23 @@ module Fields
     character(len=64) :: standardName2 = "dummy2"
   end type med_fld_syn_type
 
-  type(med_fld_type),target,dimension(14) :: fldsFrLnd = (/&
+  type(med_fld_type),target,dimension(22) :: fldsFrLnd = (/&
     med_fld_type("liquid_fraction_of_soil_moisture_layer_1","smliqfracl1",&
-                 "m3 m-3",FLD_REMAP_BILINR,FLD_MASK_NNE,1),&
+                 "-",FLD_REMAP_BILINR,FLD_MASK_NNE,1),&
     med_fld_type("liquid_fraction_of_soil_moisture_layer_2","smliqfracl2",&
-                 "m3 m-3",FLD_REMAP_BILINR,FLD_MASK_NNE,1),&
+                 "-",FLD_REMAP_BILINR,FLD_MASK_NNE,1),&
     med_fld_type("liquid_fraction_of_soil_moisture_layer_3","smliqfracl3",&
-                 "m3 m-3",FLD_REMAP_BILINR,FLD_MASK_NNE,1),&
+                 "-",FLD_REMAP_BILINR,FLD_MASK_NNE,1),&
     med_fld_type("liquid_fraction_of_soil_moisture_layer_4","smliqfracl4",&
-                 "m3 m-3",FLD_REMAP_BILINR,FLD_MASK_NNE,1),&
+                 "-",FLD_REMAP_BILINR,FLD_MASK_NNE,1),&
     med_fld_type("soil_moisture_fraction_layer_1"          ,"smfracl1"   ,&
-                 "m3 m-3",FLD_REMAP_BILINR,FLD_MASK_NNE,1),&
+                 "-",FLD_REMAP_BILINR,FLD_MASK_NNE,1),&
     med_fld_type("soil_moisture_fraction_layer_2"          ,"smfracl2"   ,&
-                 "m3 m-3",FLD_REMAP_BILINR,FLD_MASK_NNE,1),&
+                 "-",FLD_REMAP_BILINR,FLD_MASK_NNE,1),&
     med_fld_type("soil_moisture_fraction_layer_3"          ,"smfracl3"   ,&
-                 "m3 m-3",FLD_REMAP_BILINR,FLD_MASK_NNE,1),&
+                 "-",FLD_REMAP_BILINR,FLD_MASK_NNE,1),&
     med_fld_type("soil_moisture_fraction_layer_4"          ,"smfracl4"   ,&
-                 "m3 m-3",FLD_REMAP_BILINR,FLD_MASK_NNE,1),&
+                 "-",FLD_REMAP_BILINR,FLD_MASK_NNE,1),&
     med_fld_type("soil_temperature_layer_1"                ,"soiltempl1" ,&
                  "K",FLD_REMAP_BILINR,FLD_MASK_NNE,288),&
     med_fld_type("soil_temperature_layer_2"                ,"soiltempl2" ,&
@@ -92,66 +92,102 @@ module Fields
                  "K",FLD_REMAP_BILINR,FLD_MASK_NNE,288),&
     med_fld_type("time_step_infiltration_excess"           ,"infxsrt"    ,&
                  "mm",FLD_REMAP_BILINR,FLD_MASK_NNE,0),&
-    med_fld_type("soil_column_drainage"                    ,"soldrain"   ,&
-                 "mm",FLD_REMAP_BILINR,FLD_MASK_NNE,0)/)
+    med_fld_type("soil_column_drainage"                    ,"soldrain"    ,&
+                 "mm",FLD_REMAP_BILINR,FLD_MASK_NNE,0),&
+    med_fld_type("total_water_flux"                        ,"wtrflx"    ,&
+                 "kg m-2 s-1",FLD_REMAP_BILINR,FLD_MASK_NNE,0),&
+    med_fld_type("total_water_flux_layer_1"                ,"wtrflx1"    ,&
+                 "kg m-2 s-1",FLD_REMAP_BILINR,FLD_MASK_NNE,0),&
+    med_fld_type("total_water_flux_layer_2"                ,"wtrflx2"    ,&
+                 "kg m-2 s-1",FLD_REMAP_BILINR,FLD_MASK_NNE,0),&
+    med_fld_type("total_water_flux_layer_3"                ,"wtrflx3"    ,&
+                 "kg m-2 s-1",FLD_REMAP_BILINR,FLD_MASK_NNE,0),&
+    med_fld_type("total_water_flux_layer_4"                ,"wtrflx4"    ,&
+                 "kg m-2 s-1",FLD_REMAP_BILINR,FLD_MASK_NNE,0),&
+    med_fld_type("precip_drip"                             ,"pcpdrp"    ,&
+                 "kg m-2 s-1",FLD_REMAP_BILINR,FLD_MASK_NNE,0),&
+    med_fld_type("bare_soil_evaporation"                   ,"edir"    ,&
+                 "W m-2",FLD_REMAP_BILINR,FLD_MASK_NNE,0),&
+    med_fld_type("vegetation_transpiration"                ,"et"   ,&
+                 "W m-2",FLD_REMAP_BILINR,FLD_MASK_NNE,0)/)
 
-  type(med_fld_type),target,dimension(9)  :: fldsToLnd = (/&
+  type(med_fld_type),target,dimension(14)  :: fldsToLnd = (/&
     med_fld_type("liquid_fraction_of_soil_moisture_layer_1","smliqfracl1",&
-                 "m3 m-3",FLD_REMAP_BILINR,FLD_MASK_NNE,1),&
+                 "-",FLD_REMAP_BILINR,FLD_MASK_NNE,1),&
     med_fld_type("liquid_fraction_of_soil_moisture_layer_2","smliqfracl2",&
-                 "m3 m-3",FLD_REMAP_BILINR,FLD_MASK_NNE,1),&
+                 "-",FLD_REMAP_BILINR,FLD_MASK_NNE,1),&
     med_fld_type("liquid_fraction_of_soil_moisture_layer_3","smliqfracl3",&
-                 "m3 m-3",FLD_REMAP_BILINR,FLD_MASK_NNE,1),&
+                 "-",FLD_REMAP_BILINR,FLD_MASK_NNE,1),&
     med_fld_type("liquid_fraction_of_soil_moisture_layer_4","smliqfracl4",&
-                 "m3 m-3",FLD_REMAP_BILINR,FLD_MASK_NNE,1),&
+                 "-",FLD_REMAP_BILINR,FLD_MASK_NNE,1),&
     med_fld_type("soil_moisture_fraction_layer_1"          ,"smfracl1"   ,&
-                 "m3 m-3",FLD_REMAP_BILINR,FLD_MASK_NNE,1),&
+                 "-",FLD_REMAP_BILINR,FLD_MASK_NNE,1),&
     med_fld_type("soil_moisture_fraction_layer_2"          ,"smfracl2"   ,&
-                 "m3 m-3",FLD_REMAP_BILINR,FLD_MASK_NNE,1),&
+                 "-",FLD_REMAP_BILINR,FLD_MASK_NNE,1),&
     med_fld_type("soil_moisture_fraction_layer_3"          ,"smfracl3"   ,&
-                 "m3 m-3",FLD_REMAP_BILINR,FLD_MASK_NNE,1),&
+                 "-",FLD_REMAP_BILINR,FLD_MASK_NNE,1),&
     med_fld_type("soil_moisture_fraction_layer_4"          ,"smfracl4"   ,&
-                 "m3 m-3",FLD_REMAP_BILINR,FLD_MASK_NNE,1),&
+                 "-",FLD_REMAP_BILINR,FLD_MASK_NNE,1),&
     med_fld_type("surface_water_depth"                     ,"sfcheadrt_f",&
-                 "mm",FLD_REMAP_BILINR,FLD_MASK_NNE,0)/)
+                 "mm",FLD_REMAP_BILINR,FLD_MASK_NNE,1),&
+    med_fld_type("porosity"                                ,"porosity"   ,&
+                 "-",FLD_REMAP_BILINR,FLD_MASK_NNE,1),&
+    med_fld_type("pressure"                                ,"pressure"   ,&
+                 "m",FLD_REMAP_BILINR,FLD_MASK_NNE,1),&
+    med_fld_type("saturation"                              ,"saturation" ,&
+                 "-",FLD_REMAP_BILINR,FLD_MASK_NNE,1),&
+    med_fld_type("soil_moisture_fraction"                  ,"smfrac"     ,&
+                 "-",FLD_REMAP_BILINR,FLD_MASK_NNE,1),&
+    med_fld_type("liquid_fraction_of_soil_moisture"        ,"smliqfrac"  ,&
+                 "-",FLD_REMAP_BILINR,FLD_MASK_NNE,0)/)
 
-  type(med_fld_type),target,dimension(9)  :: fldsFrHyd = (/&
+  type(med_fld_type),target,dimension(14)  :: fldsFrHyd = (/&
     med_fld_type("liquid_fraction_of_soil_moisture_layer_1","smliqfracl1",&
-                 "m3 m-3",FLD_REMAP_BILINR,FLD_MASK_NNE,1),&
+                 "-",FLD_REMAP_BILINR,FLD_MASK_NNE,1),&
     med_fld_type("liquid_fraction_of_soil_moisture_layer_2","smliqfracl2",&
-                 "m3 m-3",FLD_REMAP_BILINR,FLD_MASK_NNE,1),&
+                 "-",FLD_REMAP_BILINR,FLD_MASK_NNE,1),&
     med_fld_type("liquid_fraction_of_soil_moisture_layer_3","smliqfracl3",&
-                 "m3 m-3",FLD_REMAP_BILINR,FLD_MASK_NNE,1),&
+                 "-",FLD_REMAP_BILINR,FLD_MASK_NNE,1),&
     med_fld_type("liquid_fraction_of_soil_moisture_layer_4","smliqfracl4",&
-                 "m3 m-3",FLD_REMAP_BILINR,FLD_MASK_NNE,1),&
+                 "-",FLD_REMAP_BILINR,FLD_MASK_NNE,1),&
     med_fld_type("soil_moisture_fraction_layer_1"          ,"smfracl1"   ,&
-                 "m3 m-3",FLD_REMAP_BILINR,FLD_MASK_NNE,1),&
+                 "-",FLD_REMAP_BILINR,FLD_MASK_NNE,1),&
     med_fld_type("soil_moisture_fraction_layer_2"          ,"smfracl2"   ,&
-                 "m3 m-3",FLD_REMAP_BILINR,FLD_MASK_NNE,1),&
+                 "-",FLD_REMAP_BILINR,FLD_MASK_NNE,1),&
     med_fld_type("soil_moisture_fraction_layer_3"          ,"smfracl3"   ,&
-                 "m3 m-3",FLD_REMAP_BILINR,FLD_MASK_NNE,1),&
+                 "-",FLD_REMAP_BILINR,FLD_MASK_NNE,1),&
     med_fld_type("soil_moisture_fraction_layer_4"          ,"smfracl4"   ,&
-                 "m3 m-3",FLD_REMAP_BILINR,FLD_MASK_NNE,1),&
+                 "-",FLD_REMAP_BILINR,FLD_MASK_NNE,1),&
     med_fld_type("surface_water_depth"                     ,"sfcheadrt_f",&
-                 "mm",FLD_REMAP_BILINR,FLD_MASK_NNE,0)/)
+                 "mm",FLD_REMAP_BILINR,FLD_MASK_NNE,0),&
+    med_fld_type("porosity"                                ,"porosity"   ,&
+                 "-",FLD_REMAP_BILINR,FLD_MASK_NNE,1),&
+    med_fld_type("pressure"                                ,"pressure"   ,&
+                 "m",FLD_REMAP_BILINR,FLD_MASK_NNE,1),&
+    med_fld_type("saturation"                              ,"saturation" ,&
+                 "-",FLD_REMAP_BILINR,FLD_MASK_NNE,1),&
+    med_fld_type("soil_moisture_fraction"                  ,"smfrac"     ,&
+                 "-",FLD_REMAP_BILINR,FLD_MASK_NNE,1),&
+    med_fld_type("liquid_fraction_of_soil_moisture"        ,"smliqfrac"  ,&
+                 "-",FLD_REMAP_BILINR,FLD_MASK_NNE,0)/)
 
-  type(med_fld_type),target,dimension(14) :: fldsToHyd = (/&
+  type(med_fld_type),target,dimension(22) :: fldsToHyd = (/&
     med_fld_type("liquid_fraction_of_soil_moisture_layer_1","smliqfracl1",&
-                 "m3 m-3",FLD_REMAP_BILINR,FLD_MASK_NNE,1),&
+                 "-",FLD_REMAP_BILINR,FLD_MASK_NNE,1),&
     med_fld_type("liquid_fraction_of_soil_moisture_layer_2","smliqfracl2",&
-                 "m3 m-3",FLD_REMAP_BILINR,FLD_MASK_NNE,1),&
+                 "-",FLD_REMAP_BILINR,FLD_MASK_NNE,1),&
     med_fld_type("liquid_fraction_of_soil_moisture_layer_3","smliqfracl3",&
-                 "m3 m-3",FLD_REMAP_BILINR,FLD_MASK_NNE,1),&
+                 "-",FLD_REMAP_BILINR,FLD_MASK_NNE,1),&
     med_fld_type("liquid_fraction_of_soil_moisture_layer_4","smliqfracl4",&
-                 "m3 m-3",FLD_REMAP_BILINR,FLD_MASK_NNE,1),&
+                 "-",FLD_REMAP_BILINR,FLD_MASK_NNE,1),&
     med_fld_type("soil_moisture_fraction_layer_1"          ,"smfracl1"   ,&
-                 "m3 m-3",FLD_REMAP_BILINR,FLD_MASK_NNE,1),&
+                 "-",FLD_REMAP_BILINR,FLD_MASK_NNE,1),&
     med_fld_type("soil_moisture_fraction_layer_2"          ,"smfracl2"   ,&
-                 "m3 m-3",FLD_REMAP_BILINR,FLD_MASK_NNE,1),&
+                 "-",FLD_REMAP_BILINR,FLD_MASK_NNE,1),&
     med_fld_type("soil_moisture_fraction_layer_3"          ,"smfracl3"   ,&
-                 "m3 m-3",FLD_REMAP_BILINR,FLD_MASK_NNE,1),&
+                 "-",FLD_REMAP_BILINR,FLD_MASK_NNE,1),&
     med_fld_type("soil_moisture_fraction_layer_4"          ,"smfracl4"   ,&
-                 "m3 m-3",FLD_REMAP_BILINR,FLD_MASK_NNE,1),&
+                 "-",FLD_REMAP_BILINR,FLD_MASK_NNE,1),&
     med_fld_type("soil_temperature_layer_1"                ,"soiltempl1" ,&
                  "K",FLD_REMAP_BILINR,FLD_MASK_NNE,288),&
     med_fld_type("soil_temperature_layer_2"                ,"soiltempl2" ,&
@@ -163,7 +199,23 @@ module Fields
     med_fld_type("time_step_infiltration_excess"           ,"infxsrt"    ,&
                  "mm",FLD_REMAP_BILINR,FLD_MASK_WTR,0),&
     med_fld_type("soil_column_drainage"                    ,"soldrain"   ,&
-                 "mm",FLD_REMAP_BILINR,FLD_MASK_NNE,0)/)
+                 "mm",FLD_REMAP_BILINR,FLD_MASK_NNE,0),&
+    med_fld_type("total_water_flux"                        ,"wtrflx"    ,&
+                 "kg m-2 s-1",FLD_REMAP_BILINR,FLD_MASK_NNE,0),&
+    med_fld_type("total_water_flux_layer_1"                ,"wtrflx1"    ,&
+                 "kg m-2 s-1",FLD_REMAP_BILINR,FLD_MASK_NNE,0),&
+    med_fld_type("total_water_flux_layer_2"                ,"wtrflx2"    ,&
+                 "kg m-2 s-1",FLD_REMAP_BILINR,FLD_MASK_NNE,0),&
+    med_fld_type("total_water_flux_layer_3"                ,"wtrflx3"    ,&
+                 "kg m-2 s-1",FLD_REMAP_BILINR,FLD_MASK_NNE,0),&
+    med_fld_type("total_water_flux_layer_4"                ,"wtrflx4"    ,&
+                 "kg m-2 s-1",FLD_REMAP_BILINR,FLD_MASK_NNE,0),&
+    med_fld_type("precip_drip"                             ,"pcpdrp"    ,&
+                 "kg m-2 s-1",FLD_REMAP_BILINR,FLD_MASK_NNE,0),&
+    med_fld_type("bare_soil_evaporation"                   ,"edir"    ,&
+                 "W m-2",FLD_REMAP_BILINR,FLD_MASK_NNE,0),&
+    med_fld_type("vegetation_transpiration"                ,"et"   ,&
+                 "W m-2",FLD_REMAP_BILINR,FLD_MASK_NNE,0)/)
 
   type(med_fld_syn_type),dimension(0) :: fldsLndToHyd
   type(med_fld_syn_type),dimension(0) :: fldsHydToLnd
