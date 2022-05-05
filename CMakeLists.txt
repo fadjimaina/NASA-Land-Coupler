@@ -41,6 +41,7 @@ list(APPEND nlc_app_files
   src/driver/app.F90
   src/driver/driver.F90
   src/driver/fields.F90
+  src/driver/flags.F90
   src/driver/mediator.F90
 )
 

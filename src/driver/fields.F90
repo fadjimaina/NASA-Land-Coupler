@@ -18,36 +18,11 @@ module Fields
 
   use ESMF
   use NUOPC
+  use Flags
 
   implicit none
 
   private
-
-  type fieldRemapFlag
-    sequence
-    private
-      integer :: remap
-  end type
-
-  type(fieldRemapFlag), parameter ::       &
-    FLD_REMAP_ERROR  = fieldRemapFlag(-1), &
-    FLD_REMAP_UNKOWN = fieldRemapFlag(0),  &
-    FLD_REMAP_REDIST = fieldRemapFlag(1),  &
-    FLD_REMAP_BILINR = fieldRemapFlag(2),  &
-    FLD_REMAP_CONSRV = fieldRemapFlag(3)
-
-  type fieldMaskFlag
-    sequence
-    private
-      integer :: mask
-  end type
-
-  type(fieldMaskFlag), parameter ::   &
-    FLD_MASK_ERR = fieldMaskFlag(-1), &
-    FLD_MASK_UNK = fieldMaskFlag(0),  &
-    FLD_MASK_NNE = fieldMaskFlag(1),  &
-    FLD_MASK_LND = fieldMaskFlag(2),  &
-    FLD_MASK_WTR = fieldMaskFlag(3)
 
   type med_fld_type
     sequence
@@ -220,20 +195,6 @@ module Fields
   type(med_fld_syn_type),dimension(0) :: fldsLndToHyd
   type(med_fld_syn_type),dimension(0) :: fldsHydToLnd
 
-  public fieldRemapFlag
-  public FLD_REMAP_ERROR
-  public FLD_REMAP_UNKOWN
-  public FLD_REMAP_REDIST
-  public FLD_REMAP_BILINR
-  public FLD_REMAP_CONSRV
-
-  public fieldMaskFlag
-  public FLD_MASK_ERR
-  public FLD_MASK_UNK
-  public FLD_MASK_NNE
-  public FLD_MASK_LND
-  public FLD_MASK_WTR
-
   public med_fld_type
 
   public fldsFrLnd
@@ -244,116 +205,14 @@ module Fields
   public fldsLndToHyd
   public fldsHydToLnd
 
-  public operator(==), assignment(=)
-
   public field_dictionary_add
   public field_synonym_add
   public field_advertise
   public field_find_standardname
   public field_find_statename
 
-  interface operator (==)
-    module procedure field_rfeq
-    module procedure field_mfeq
-  end interface
-
-  interface assignment (=)
-    module procedure field_rfas_string
-    module procedure field_mfas_string
-    module procedure field_stringas_rf
-    module procedure field_stringas_mf
-  end interface
-
   !-----------------------------------------------------------------------------
   contains
-  !-----------------------------------------------------------------------------
-
-  function field_rfeq(rf1, rf2)
-    logical field_rfeq
-    type(fieldRemapFlag), intent(in) :: rf1, rf2
-    field_rfeq = (rf1%remap == rf2%remap)
-  end function
-
-  !-----------------------------------------------------------------------------
-
-  subroutine field_rfas_string(string, rfval)
-    character(len=*), intent(out) :: string
-    type(fieldRemapFlag), intent(in) :: rfval
-    if (rfval == FLD_REMAP_UNKOWN) then
-      write(string,'(a)') 'FLD_REMAP_UNKOWN'
-    elseif (rfval == FLD_REMAP_REDIST) then
-      write(string,'(a)') 'FLD_REMAP_REDIST'
-    elseif (rfval == FLD_REMAP_BILINR) then
-      write(string,'(a)') 'FLD_REMAP_BILINR'
-    elseif (rfval == FLD_REMAP_CONSRV) then
-      write(string,'(a)') 'FLD_REMAP_CONSRV'
-    else
-      write(string,'(a)') 'FLD_REMAP_ERROR'
-    endif
-  end subroutine
-
-  !-----------------------------------------------------------------------------
-
-  subroutine field_stringas_rf(rfval, string)
-    type(fieldRemapFlag), intent(out) :: rfval
-    character(len=*), intent(in) :: string
-    if (string .eq. 'FLD_REMAP_UNKOWN') then
-      rfval = FLD_REMAP_UNKOWN
-    elseif (string .eq. 'FLD_REMAP_REDIST') then
-      rfval = FLD_REMAP_REDIST
-    elseif (string .eq.'FLD_REMAP_BILINR') then
-      rfval = FLD_REMAP_BILINR
-    elseif (string .eq. 'FLD_REMAP_CONSRV') then
-      rfval = FLD_REMAP_CONSRV
-    else
-      rfval = FLD_REMAP_ERROR
-    endif
-  end subroutine
-
-  !-----------------------------------------------------------------------------
-
-  function field_mfeq(mf1, mf2)
-    logical field_mfeq
-    type(fieldMaskFlag), intent(in) :: mf1, mf2
-    field_mfeq = (mf1%mask == mf2%mask)
-  end function
-
-  !-----------------------------------------------------------------------------
-
-  subroutine field_mfas_string(string, mfval)
-    character(len=*), intent(out) :: string
-    type(fieldMaskFlag), intent(in) :: mfval
-    if (mfval == FLD_MASK_UNK) then
-      write(string,'(a)') 'FLD_MASK_UNK'
-    elseif (mfval == FLD_MASK_NNE) then
-      write(string,'(a)') 'FLD_MASK_NNE'
-    elseif (mfval == FLD_MASK_LND) then
-      write(string,'(a)') 'FLD_MASK_LND'
-    elseif (mfval == FLD_MASK_WTR) then
-      write(string,'(a)') 'FLD_MASK_WTR'
-    else
-      write(string,'(a)') 'FLD_MASK_ERR'
-    endif
-  end subroutine
-
-  !-----------------------------------------------------------------------------
-
-  subroutine field_stringas_mf(mfval,string)
-    type(fieldMaskFlag), intent(out) :: mfval
-    character(len=*), intent(in) :: string
-    if (string .eq. 'FLD_MASK_UNK') then
-      mfval = FLD_MASK_UNK
-    elseif (string .eq. 'FLD_MASK_NNE') then
-      mfval = FLD_MASK_NNE
-    elseif (string .eq. 'FLD_MASK_LND') then
-      mfval = FLD_MASK_LND
-    elseif (string .eq. 'FLD_MASK_WTR') then
-      mfval = FLD_MASK_WTR
-    else
-      mfval = FLD_MASK_ERR
-    endif
-  end subroutine
-
   !-----------------------------------------------------------------------------
 
   subroutine field_dictionary_add(fieldList, rc)

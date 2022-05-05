@@ -35,6 +35,7 @@ module ESM
 #endif
   use Mediator, only: medSS => SetServices
   use Fields
+  use Flags
 
   use NUOPC_Connector, only: cplSS => SetServices
 
@@ -849,210 +850,228 @@ module ESM
     integer                         :: findPos
     type(med_fld_type), pointer     :: srcFlds(:) => null()
     type(med_fld_type), pointer     :: dstFlds(:) => null()
+    type(cplListFlag)               :: cplListOpt = CPL_LIST_INT
     type(fieldRemapFlag)            :: fieldDstRemap = FLD_REMAP_REDIST
     type(fieldMaskFlag)             :: fieldSrcMask  = FLD_MASK_NNE
     type(fieldMaskFlag)             :: fieldDstMask  = FLD_MASK_NNE
 
     rc = ESMF_SUCCESS
 
-    nullify(connectorList)
-    call NUOPC_DriverGetComp(driver, compList=connectorList, rc=rc)
+    call ESMF_AttributeGet(driver, name="cpl_list", &
+      value=value, defaultValue="CPL_LIST_INT", &
+      convention="NUOPC", purpose="Instance", rc=rc)
     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
       line=__LINE__, file=__FILE__)) return  ! bail out
+    cplListOpt = value
 
-    do i=1, size(connectorList)
-      ! get connector information
-!      call NUOPC_CompGet(connectorList(i), name=connectorName, verbosity=verbosity, &
-!        diagnostic=diagnostic, rc=rc)
-!      if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-!        line=__LINE__, file=__FILE__)) return  ! bail out
-      call ESMF_CplCompGet(connectorList(i), name=connectorName, rc=rc)
+    if (cplListOpt .eq. CPL_LIST_NNE) then
+      ! use config file cplList options
+    elseif (cplListOpt .eq. CPL_LIST_INT) then
+      ! use code specified cplList options
+      nullify(connectorList)
+      call NUOPC_DriverGetComp(driver, compList=connectorList, rc=rc)
       if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
         line=__LINE__, file=__FILE__)) return  ! bail out
-      call ESMF_AttributeGet(connectorList(i), name="Diagnostic", value=value, &
-        defaultValue="0", convention="NUOPC", purpose="Instance", rc=rc)
-      if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-        line=__LINE__, file=__FILE__)) return  ! bail out
-      diagnostic = ESMF_UtilString2Int(value, &
-        specialStringList=(/"min","max","debug"/), &
-        specialValueList=(/0,65535,65536/), rc=rc)
-      if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-        line=__LINE__, file=__FILE__)) return  ! bail out
-      call ESMF_AttributeGet(connectorList(i), name="Verbosity", value=value, &
-        defaultValue="0", convention="NUOPC", purpose="Instance", rc=rc)
-      if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-        line=__LINE__, file=__FILE__)) return  ! bail out
-      verbosity = ESMF_UtilString2Int(value, &
-        specialStringList=(/"min","max","debug"/), &
-        specialValueList=(/0,65535,65536/), rc=rc)
-      if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-        line=__LINE__, file=__FILE__)) return  ! bail out
-      if (verbosity>0) then
-        write (msg,"(A,A,A)") trim(connectorName),": ", &
-          "Modifying CplList"
-        call ESMF_LogWrite(trim(msg), ESMF_LOGMSG_INFO, rc=rc)
+  
+      do i=1, size(connectorList)
+        ! get connector information
+  !      call NUOPC_CompGet(connectorList(i), name=connectorName, verbosity=verbosity, &
+  !        diagnostic=diagnostic, rc=rc)
+  !      if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+  !        line=__LINE__, file=__FILE__)) return  ! bail out
+        call ESMF_CplCompGet(connectorList(i), name=connectorName, rc=rc)
         if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
           line=__LINE__, file=__FILE__)) return  ! bail out
-      endif
-
-      split = index(connectorName,"-TO-")
-      if ((split .lt. 2) .OR. (split .ge. (len_trim(connectorName)-3))) then
-        call ESMF_LogSetError(ESMF_RC_NOT_VALID, &
-          msg="Invalid connector name: "//trim(connectorName), &
-          line=__LINE__, file=__FILE__, rcToReturn=rc)
-        return
-      endif
-
-      srcName = connectorName(1:split-1)
-      dstName = connectorName(split+4:len_trim(connectorName))
-
-      ! remove ensemble index from srcName
-      split = index(srcName,"-")
-      if (split .gt. 1) then
-        srcName = srcName(1:split-1)
-      endif
-      ! remove ensemble index from dstName
-      split = index(dstName,"-")
-      if (split .gt. 1) then
-        dstName = dstName(1:split-1)
-      endif
-      ! get source field list
-      if (srcName .eq. "LND") then
-        srcFlds=>fldsFrLnd
-      elseif (srcName .eq. "HYD") then
-        srcFlds=>fldsFrHyd
-      elseif (srcName .eq. "MED") then
-        nullify(srcFlds)
-      else
-        call ESMF_LogSetError(ESMF_RC_NOT_IMPL, &
-          msg="ModifyCplList for "//trim(connectorName)//" not implemented", &
-          line=__LINE__, file=__FILE__, rcToReturn=rc)
-        return
-      endif
-      ! get destination field list
-      if (dstName .eq. "LND") then
-        dstFlds=>fldsToLnd
-      elseif (dstName .eq. "HYD") then
-        dstFlds=>fldsToHyd
-      elseif (dstName .eq. "MED") then
-        nullify(dstFlds)
-      else
-        call ESMF_LogSetError(ESMF_RC_NOT_IMPL, &
-          msg="ModifyCplList for "//trim(connectorName)//" not implemented", &
-          line=__LINE__, file=__FILE__, rcToReturn=rc)
-        return
-      endif
-      ! query the cplList for connector i
-      call NUOPC_CompAttributeGet(connectorList(i), name="CplList", &
-        itemCount=cplListSize, rc=rc)
-      if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-        line=__LINE__, file=__FILE__)) return  ! bail out
-      if (cplListSize>0) then
-        allocate(cplList(cplListSize))
+        call ESMF_AttributeGet(connectorList(i), name="Diagnostic", value=value, &
+          defaultValue="0", convention="NUOPC", purpose="Instance", rc=rc)
+        if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+          line=__LINE__, file=__FILE__)) return  ! bail out
+        diagnostic = ESMF_UtilString2Int(value, &
+          specialStringList=(/"min","max","debug"/), &
+          specialValueList=(/0,65535,65536/), rc=rc)
+        if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+          line=__LINE__, file=__FILE__)) return  ! bail out
+        call ESMF_AttributeGet(connectorList(i), name="Verbosity", value=value, &
+          defaultValue="0", convention="NUOPC", purpose="Instance", rc=rc)
+        if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+          line=__LINE__, file=__FILE__)) return  ! bail out
+        verbosity = ESMF_UtilString2Int(value, &
+          specialStringList=(/"min","max","debug"/), &
+          specialValueList=(/0,65535,65536/), rc=rc)
+        if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+          line=__LINE__, file=__FILE__)) return  ! bail out
+        if (verbosity>0) then
+          write (msg,"(A,A,A)") trim(connectorName),": ", &
+            "Modifying CplList"
+          call ESMF_LogWrite(trim(msg), ESMF_LOGMSG_INFO, rc=rc)
+          if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+            line=__LINE__, file=__FILE__)) return  ! bail out
+        endif
+  
+        split = index(connectorName,"-TO-")
+        if ((split .lt. 2) .OR. (split .ge. (len_trim(connectorName)-3))) then
+          call ESMF_LogSetError(ESMF_RC_NOT_VALID, &
+            msg="Invalid connector name: "//trim(connectorName), &
+            line=__LINE__, file=__FILE__, rcToReturn=rc)
+          return
+        endif
+  
+        srcName = connectorName(1:split-1)
+        dstName = connectorName(split+4:len_trim(connectorName))
+  
+        ! remove ensemble index from srcName
+        split = index(srcName,"-")
+        if (split .gt. 1) then
+          srcName = srcName(1:split-1)
+        endif
+        ! remove ensemble index from dstName
+        split = index(dstName,"-")
+        if (split .gt. 1) then
+          dstName = dstName(1:split-1)
+        endif
+        ! get source field list
+        if (srcName .eq. "LND") then
+          srcFlds=>fldsFrLnd
+        elseif (srcName .eq. "HYD") then
+          srcFlds=>fldsFrHyd
+        elseif (srcName .eq. "MED") then
+          nullify(srcFlds)
+        else
+          call ESMF_LogSetError(ESMF_RC_NOT_IMPL, &
+            msg="ModifyCplList for "//trim(connectorName)//" not implemented", &
+            line=__LINE__, file=__FILE__, rcToReturn=rc)
+          return
+        endif
+        ! get destination field list
+        if (dstName .eq. "LND") then
+          dstFlds=>fldsToLnd
+        elseif (dstName .eq. "HYD") then
+          dstFlds=>fldsToHyd
+        elseif (dstName .eq. "MED") then
+          nullify(dstFlds)
+        else
+          call ESMF_LogSetError(ESMF_RC_NOT_IMPL, &
+            msg="ModifyCplList for "//trim(connectorName)//" not implemented", &
+            line=__LINE__, file=__FILE__, rcToReturn=rc)
+          return
+        endif
+        ! query the cplList for connector i
         call NUOPC_CompAttributeGet(connectorList(i), name="CplList", &
-          valueList=cplList, rc=rc)
+          itemCount=cplListSize, rc=rc)
         if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
           line=__LINE__, file=__FILE__)) return  ! bail out
-        ! go through all of the entries in the cplList and add options
-        do j=1, cplListSize
-          findPos = index(cplList(j),":")
-          if (findPos .gt. 0) then
-            standardName = cplList(j)(1:findPos-1)
-            defaultOpts = cplList(j)(findPos:LEN(cplList(j)))
-            cplList(j) = trim(standardName)
-          else
-            standardName = trim(cplList(j))
-            defaultOpts = ""
-          endif
-          if (associated(srcFlds)) then
-            call field_find_standardname(fieldList=srcFlds, &
-              standardName=standardName, &
-              mask=fieldSrcMask, rc=rc)
-            if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-              line=__LINE__, file=__FILE__)) return  ! bail out
-          else
-            fieldSrcMask=FLD_MASK_NNE
-          endif
-          if (associated(dstFlds)) then
-            call field_find_standardname(fieldList=dstFlds, &
-              standardName=standardName, &
-              mapping=fieldDstRemap, mask=fieldDstMask, rc=rc)
-            if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-              line=__LINE__, file=__FILE__)) return  ! bail out
-          else
-            fieldDstRemap=FLD_REMAP_BILINR
-            fieldDstMask=FLD_MASK_NNE
-          endif
-          if (fieldDstRemap .eq. FLD_REMAP_REDIST) then
-            cplList(j) = trim(cplList(j))//":remapmethod=redist"
-          elseif (fieldDstRemap .eq. FLD_REMAP_BILINR) then
-            cplList(j) = trim(cplList(j))//":remapmethod=bilinear"
-          elseif (fieldDstRemap .eq. FLD_REMAP_CONSRV) then
-            cplList(j) = trim(cplList(j))//":remapmethod=conserve"
-          else
-            call ESMF_LogSetError(ESMF_RC_NOT_IMPL, &
-              msg="Field remap type is unknown.", &
-              line=__LINE__, file=__FILE__, rcToReturn=rc)
-            return
-          endif
-          if (fieldSrcMask == FLD_MASK_NNE) then
-            ! No Mask
-          elseif (fieldSrcMask == FLD_MASK_LND) then
-            cplList(j) = trim(cplList(j))//":srcmaskvalues=1"
-          elseif (fieldSrcMask == FLD_MASK_WTR) then
-            cplList(j) = trim(cplList(j))//":srcmaskvalues=0"
-          else
-            call ESMF_LogSetError(ESMF_RC_NOT_IMPL, &
-              msg="Field source mask value is unknown.", &
-              line=__LINE__, file=__FILE__, rcToReturn=rc)
-            return
-          endif
-          if (fieldDstMask == FLD_MASK_NNE) then
-            ! No Mask
-          elseif (fieldDstMask == FLD_MASK_LND) then
-            cplList(j) = trim(cplList(j))//":dstmaskvalues=1"
-          elseif (fieldDstMask == FLD_MASK_WTR) then
-            cplList(j) = trim(cplList(j))//":dstmaskvalues=0"
-          else
-            call ESMF_LogSetError(ESMF_RC_NOT_IMPL, &
-              msg="Field destination mask value is unknown.", &
-              line=__LINE__, file=__FILE__, rcToReturn=rc)
-            return
-          endif
-          if (verbosity>0) then
+        if (cplListSize>0) then
+          allocate(cplList(cplListSize))
+          call NUOPC_CompAttributeGet(connectorList(i), name="CplList", &
+            valueList=cplList, rc=rc)
+          if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+            line=__LINE__, file=__FILE__)) return  ! bail out
+          ! go through all of the entries in the cplList and add options
+          do j=1, cplListSize
+            findPos = index(cplList(j),":")
             if (findPos .gt. 0) then
-              write (msg,"(A,A,A,I0,A,A)") trim(connectorName),": ", &
-                "CplList(",j,")=",trim(cplList(j))
-              call ESMF_LogWrite(trim(msg), ESMF_LOGMSG_INFO, rc=rc)
-              if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-                line=__LINE__, file=__FILE__)) return  ! bail out
-              write (msg,"(A,A,A,I0,A,A,A,A)") trim(connectorName),": ", &
-                "CplList(",j,")=",trim(standardName)," [REMOVED] ", &
-                trim(defaultOpts)
-              call ESMF_LogWrite(trim(msg), ESMF_LOGMSG_INFO, rc=rc)
+              standardName = cplList(j)(1:findPos-1)
+              defaultOpts = cplList(j)(findPos:LEN(cplList(j)))
+              cplList(j) = trim(standardName)
+            else
+              standardName = trim(cplList(j))
+              defaultOpts = ""
+            endif
+            if (associated(srcFlds)) then
+              call field_find_standardname(fieldList=srcFlds, &
+                standardName=standardName, &
+                mask=fieldSrcMask, rc=rc)
               if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
                 line=__LINE__, file=__FILE__)) return  ! bail out
             else
-              write (msg,"(A,A,A,I0,A,A)") trim(connectorName),": ", &
-                "CplList(",j,")=",trim(cplList(j))
-              call ESMF_LogWrite(trim(msg), ESMF_LOGMSG_INFO, rc=rc)
+              fieldSrcMask=FLD_MASK_NNE
+            endif
+            if (associated(dstFlds)) then
+              call field_find_standardname(fieldList=dstFlds, &
+                standardName=standardName, &
+                mapping=fieldDstRemap, mask=fieldDstMask, rc=rc)
               if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
                 line=__LINE__, file=__FILE__)) return  ! bail out
+            else
+              fieldDstRemap=FLD_REMAP_BILINR
+              fieldDstMask=FLD_MASK_NNE
             endif
-          endif
-        enddo
-
-        ! store the modified cplList in CplList attribute of connector i
-        call NUOPC_CompAttributeSet(connectorList(i), &
-          name="CplList", valueList=cplList, rc=rc)
-        if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-          line=__LINE__, file=__FILE__)) return  ! bail out
-        deallocate(cplList)
-      endif
-    enddo
-
-    deallocate(connectorList)
+            if (fieldDstRemap .eq. FLD_REMAP_REDIST) then
+              cplList(j) = trim(cplList(j))//":remapmethod=redist"
+            elseif (fieldDstRemap .eq. FLD_REMAP_BILINR) then
+              cplList(j) = trim(cplList(j))//":remapmethod=bilinear"
+            elseif (fieldDstRemap .eq. FLD_REMAP_CONSRV) then
+              cplList(j) = trim(cplList(j))//":remapmethod=conserve"
+            else
+              call ESMF_LogSetError(ESMF_RC_NOT_IMPL, &
+                msg="Field remap type is unknown.", &
+                line=__LINE__, file=__FILE__, rcToReturn=rc)
+              return
+            endif
+            if (fieldSrcMask == FLD_MASK_NNE) then
+              ! No Mask
+            elseif (fieldSrcMask == FLD_MASK_LND) then
+              cplList(j) = trim(cplList(j))//":srcmaskvalues=1"
+            elseif (fieldSrcMask == FLD_MASK_WTR) then
+              cplList(j) = trim(cplList(j))//":srcmaskvalues=0"
+            else
+              call ESMF_LogSetError(ESMF_RC_NOT_IMPL, &
+                msg="Field source mask value is unknown.", &
+                line=__LINE__, file=__FILE__, rcToReturn=rc)
+              return
+            endif
+            if (fieldDstMask == FLD_MASK_NNE) then
+              ! No Mask
+            elseif (fieldDstMask == FLD_MASK_LND) then
+              cplList(j) = trim(cplList(j))//":dstmaskvalues=1"
+            elseif (fieldDstMask == FLD_MASK_WTR) then
+              cplList(j) = trim(cplList(j))//":dstmaskvalues=0"
+            else
+              call ESMF_LogSetError(ESMF_RC_NOT_IMPL, &
+                msg="Field destination mask value is unknown.", &
+                line=__LINE__, file=__FILE__, rcToReturn=rc)
+              return
+            endif
+            if (verbosity>0) then
+              if (findPos .gt. 0) then
+                write (msg,"(A,A,A,I0,A,A)") trim(connectorName),": ", &
+                  "CplList(",j,")=",trim(cplList(j))
+                call ESMF_LogWrite(trim(msg), ESMF_LOGMSG_INFO, rc=rc)
+                if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+                  line=__LINE__, file=__FILE__)) return  ! bail out
+                write (msg,"(A,A,A,I0,A,A,A,A)") trim(connectorName),": ", &
+                  "CplList(",j,")=",trim(standardName)," [REMOVED] ", &
+                  trim(defaultOpts)
+                call ESMF_LogWrite(trim(msg), ESMF_LOGMSG_INFO, rc=rc)
+                if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+                  line=__LINE__, file=__FILE__)) return  ! bail out
+              else
+                write (msg,"(A,A,A,I0,A,A)") trim(connectorName),": ", &
+                  "CplList(",j,")=",trim(cplList(j))
+                call ESMF_LogWrite(trim(msg), ESMF_LOGMSG_INFO, rc=rc)
+                if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+                  line=__LINE__, file=__FILE__)) return  ! bail out
+              endif
+            endif
+          enddo
+  
+          ! store the modified cplList in CplList attribute of connector i
+          call NUOPC_CompAttributeSet(connectorList(i), &
+            name="CplList", valueList=cplList, rc=rc)
+          if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+            line=__LINE__, file=__FILE__)) return  ! bail out
+          deallocate(cplList)
+        endif
+      enddo
+  
+      deallocate(connectorList)
+    else
+      call ESMF_LogSetError(ESMF_RC_ARG_BAD, &
+        msg="Invalid cpl_list option.", &
+        line=__LINE__, file=__FILE__, rcToReturn=rc)
+      return
+    endif
 
   end subroutine
-
+  
 end module

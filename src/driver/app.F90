@@ -28,12 +28,21 @@ program esmApp
   type(ESMF_GridComp)     :: esmComp
   
   ! Initialize ESMF
+#if ESMF_VERSION_MAJOR >= 8 && ESMF_VERSION_MINOR >= 2
+  call ESMF_Initialize(configFileName=NLC_CONFIG, &
+    defaultCalkind=ESMF_CALKIND_GREGORIAN, rc=rc)
+  if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+    line=__LINE__, &
+    file=__FILE__)) &
+    call ESMF_Finalize(endflag=ESMF_END_ABORT)
+#else
   call ESMF_Initialize(logkindflag=NLC_LOGKIND, &
     defaultCalkind=ESMF_CALKIND_GREGORIAN, rc=rc)
   if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
     line=__LINE__, &
     file=__FILE__)) &
     call ESMF_Finalize(endflag=ESMF_END_ABORT)
+#endif
   
   call ESMF_LogWrite("esmApp STARTING", ESMF_LOGMSG_INFO, rc=rc)
   if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
