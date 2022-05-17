@@ -4,8 +4,8 @@
 	branch = master
 [submodule "src/LISF"]
 	path = src/LISF
-	url = https://github.com/NASA-LIS/LISF.git
-	branch = master
+	url = https://github.com/NESII/LISF.git
+	branch = feature/NUOPC
 [submodule "src/parflow"]
 	path = src/parflow
 	url = https://github.com/NESII/parflow.git
