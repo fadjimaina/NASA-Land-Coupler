@@ -324,6 +324,17 @@ if [[ $RUNCONFIG == *"lnd"* ]]; then
   fi
 fi
 
+# ParFlow setup
+if [[ $RUNCONFIG == *"pf"* ]]; then
+  DATA_HYD=$DATA_ROOT/PARFLOW/$USECASE
+  if [ -d $DATA_HYD ]; then
+    cp $DATA_HYD/* $RUNDIR/.
+  else
+    echo "ERROR: DATA_HYD directory not found [$DATA_HYD]"
+    exit 1
+  fi
+fi
+
 # Copy executable to RUNDIR
 cp $NLC_EXE $RUNDIR/.
 
