@@ -113,7 +113,8 @@ module ESM
     type(ESMF_CplComp)            :: connector
     type(ESMF_Config)             :: config
     type(NUOPC_FreeFormat)        :: attrFF
-    logical                       :: enabledLnd, enabledHyd, enabledMed
+    logical                       :: enabledLnd, enabledHyd, enabledGwr
+    logical                       :: enabledMed
     integer, allocatable          :: petList(:)
     logical                       :: multiInst
     integer                       :: instCnt
@@ -135,6 +136,10 @@ module ESM
     call NUOPC_FreeFormatDestroy(attrFF, rc=rc)
     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
       line=__LINE__, file=__FILE__)) return  ! bail out
+
+    ! ###########
+    ! Land Models
+    ! ###########
 
     call isComponentEnabled(config, "lnd", isEnabled=enabledLnd, rc=rc)
     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
@@ -197,6 +202,10 @@ module ESM
         line=__LINE__, file=__FILE__)) return  ! bail out
 
     endif ! enabledLnd
+
+    ! ################
+    ! Hydrology Models
+    ! ################
 
     call isComponentEnabled(config, "hyd", isEnabled=enabledHyd, rc=rc)
     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
@@ -405,6 +414,76 @@ module ESM
       endif ! multiple instances
 
     endif !enabledHyd
+
+    ! ##################
+    ! Groundwater Models
+    ! ##################
+
+    call isComponentEnabled(config, "gwr", isEnabled=enabledGwr, rc=rc)
+    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+      line=__LINE__, file=__FILE__)) return  ! bail out
+
+    if (enabledGwr) then
+
+      ! get model from config
+      call getModelFromConfig(config, "gwr_model:", model=model, rc=rc)
+      if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+        line=__LINE__, file=__FILE__)) return  ! bail out
+
+      ! get PET lists from config
+      call getPetListFromConfig(config, "pets_gwr:", petList=petList, rc=rc)
+      if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+        line=__LINE__, file=__FILE__)) return  ! bail out
+
+      ! SetServices for GWR
+      select case (model)
+        case ('parflow','default')
+#ifdef NUOPCCAP_PARFLOW
+          if (allocated(petList)) then
+            call NUOPC_DriverAddComp(driver, "GWR", parflow_ss, petList=petList, &
+              comp=child, rc=rc)
+            if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+              line=__LINE__, file=__FILE__)) return  ! bail out
+            deallocate(petList)
+          else
+            call NUOPC_DriverAddComp(driver, "GWR", parflow_ss, comp=child, rc=rc)
+            if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+              line=__LINE__, file=__FILE__)) return  ! bail out
+          endif
+#else
+          call ESMF_LogSetError(ESMF_RC_ARG_BAD, &
+            msg="PARFLOW model missing from build", &
+            line=__LINE__, file=__FILE__, rcToReturn=rc)
+          return
+#endif
+        case default
+          call ESMF_LogSetError(ESMF_RC_ARG_BAD, &
+            msg="invalid gwr_model: "//trim(model), &
+            line=__LINE__, file=__FILE__, rcToReturn=rc)
+          return
+      endselect
+
+      call NUOPC_CompAttributeSet(child, name="Verbosity", value="0", rc=rc)
+      if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+        line=__LINE__, file=__FILE__)) return  ! bail out
+
+      ! read GWR attributes from config file into FreeFormat
+      attrFF = NUOPC_FreeFormatCreate(config, label="gwrAttributes::", &
+        relaxedflag=.true., rc=rc)
+      if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+        line=__LINE__, file=__FILE__)) return  ! bail out
+      call NUOPC_CompAttributeIngest(child, attrFF, addFlag=.true., rc=rc)
+      if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+        line=__LINE__, file=__FILE__)) return  ! bail out
+      call NUOPC_FreeFormatDestroy(attrFF, rc=rc)
+      if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+        line=__LINE__, file=__FILE__)) return  ! bail out
+
+    endif ! enabledGwr
+
+    ! #########
+    ! Mediators
+    ! #########
 
     call isComponentEnabled(config, "med", isEnabled=enabledMed, rc=rc)
     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
@@ -934,6 +1013,8 @@ module ESM
           srcFlds=>fldsFrLnd
         elseif (srcName .eq. "HYD") then
           srcFlds=>fldsFrHyd
+        elseif (srcName .eq. "GWR") then
+          srcFlds=>fldsFrHyd
         elseif (srcName .eq. "MED") then
           nullify(srcFlds)
         else
@@ -946,6 +1027,8 @@ module ESM
         if (dstName .eq. "LND") then
           dstFlds=>fldsToLnd
         elseif (dstName .eq. "HYD") then
+          dstFlds=>fldsToHyd
+        elseif (dstName .eq. "GWR") then
           dstFlds=>fldsToHyd
         elseif (dstName .eq. "MED") then
           nullify(dstFlds)

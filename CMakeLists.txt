@@ -91,9 +91,12 @@ if (ENABLE_WRFHYDRO)
   if (NOT DEFINED ENV{NLC_WRFHYDRO_INST})
     message(FATAL_ERROR "Environment missing NLC_WRFHYDRO_INST.")
   endif ()
+  if (NOT ENABLE_LIS)
+    set (WRFHYDRO_LSM "HYDRO_LSM=NoahMP")
+  endif ()
   set(NLC_WRFHYDRO_INST $ENV{NLC_WRFHYDRO_INST} CACHE FILEPATH "Path to NLC_WRFHYDRO_INST")
   message("Build WRFHYDRO:")
-  message("  run: ${CMAKE_BUILD_TOOL} nuopcinstall INSTPATH=${NLC_WRFHYDRO_INST}")
+  message("  run: ${CMAKE_BUILD_TOOL} nuopcinstall ${WRFHYDRO_LSM} INSTPATH=${NLC_WRFHYDRO_INST}")
   message("   in: ${CMAKE_CURRENT_SOURCE_DIR}/src/wrf_hydro_nwm/trunk/NDHMS/CPL/NUOPC_cpl")
   message("")
 
@@ -103,7 +106,7 @@ if (ENABLE_WRFHYDRO)
 
   add_custom_target(wrfhydro_nuopc
     WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/src/wrf_hydro_nwm/trunk/NDHMS/CPL/NUOPC_cpl"
-    COMMAND ${CMAKE_BUILD_TOOL} nuopcinstall INSTPATH=${NLC_WRFHYDRO_INST})
+    COMMAND ${CMAKE_BUILD_TOOL} nuopcinstall ${WRFHYDRO_LSM} INSTPATH=${NLC_WRFHYDRO_INST})
 
   add_dependencies(NLC.exe wrfhydro_nuopc)
   target_link_libraries(NLC.exe PUBLIC ${NLC_WRFHYDRO_INST}/libwrfhydro_nuopc.a)
